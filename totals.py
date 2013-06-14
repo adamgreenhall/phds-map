@@ -15,7 +15,7 @@ def get_locs():
     zipcodes['zip'] = zipcodes.zip.astype(str)
 
     return pd.merge(schools, zipcodes, on='zip', how='inner').dropna()
-    
+
 cols = {
     'Year': 'year',
     'Academic Institution (standardized)': 'institution',
@@ -32,7 +32,11 @@ totals = df.groupby(['institution', 'year']).sum()\
     .reset_index().groupby('institution').mean()[['num_bac_docs', 'num_docs']]
 
 
+# get the locations of the schools (lat, long from zipcode)
 schools = get_locs()
+
+# merge the datasets and add back in the international doctors too
+# (place them somewhere off Baja)
 pd.merge(schools, totals.reset_index(), on='institution').append(
     pd.Series(dict(
         institution='International',
