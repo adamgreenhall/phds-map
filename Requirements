@@ -1,3 +1,6 @@
+simplejson
 pygeocoder
 pandas
 numpy
+jellyfish
+-e git+git@github.com:pydata/pandasjson.git#egg=pandasjson
