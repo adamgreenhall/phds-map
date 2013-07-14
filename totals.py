@@ -38,9 +38,9 @@ def get_locs():
         .groupby('institution').first().reset_index()
     schools['zip'] = schools.zip.astype(str)
 
-    zipcodes = pd.read_csv('zipcode.csv', dtype={'zip': object}
-        )[['zip', 'latitude', 'longitude']]
-    zipcodes['zip'] = zipcodes.zip.astype(str)
+    zipcodes = pd.read_csv('zip_code_database.csv', dtype={'zip':str})[
+        ['zip', 'state', 'latitude', 'longitude']
+    ]
 
     return pd.merge(schools, zipcodes, on='zip', how='inner').dropna()
 
@@ -78,5 +78,5 @@ def make_json(totals_by_year, summary=None):
 
 if __name__ == '__main__':
     totals, totals_by_discipline, totals_by_year = get_totals()
-    #summary = make_summary(totals)
-    make_json(totals_by_year)
+    summary = make_summary(totals)
+    # make_json(totals_by_year)

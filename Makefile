@@ -6,20 +6,20 @@
 # phds-by-institution.csv:
 # sadly the SED survey results are not machine accessable and must be downloaded by hand from https://webcaspar.nsf.gov/
 
-# 
-
-zipcode.csv:
-	curl "http://www.boutell.com/zipcodes/zipcode.zip" -o zipcodes.zip
-	unzip zipcodes.zip zipcode.csv
-
-populations-costs.csv:
-	python get_undergrad_pop.py
-
 install:
 	pip install -r Requirements
 
-phd-averages.csv:
+zip_code_database.csv:
+	curl "http://www.unitedstateszipcodes.org/zip_code_database.csv" -O
+
+undergrad-populations-costs.csv:
+	python get_undergrad_pop.py
+
+phd-averages.csv: zip_code_database.csv phds-by-institution.csv
 	python totals.py
+
+phd-averages-w-pop.csv: phd-averages.csv undergrad-populations-costs.csv
+	python merge.py
 
 us-10m.json:
 	cd ~/code/us-atlas && make topo/us-10m.json

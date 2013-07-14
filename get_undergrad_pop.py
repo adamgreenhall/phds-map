@@ -10,7 +10,9 @@ cols = {
     4: 'population'
 }
 def get_url(pg):
-    return 'http://www.forbes.com/lists/2010/94/best-colleges-10_Americas-Best-Colleges_TotStudPop{p}.html'.format(p='_{}'.format(pg) if pg > 1 else '')
+    return '{url}{p}.html'.format(
+        url="http://www.forbes.com/lists/2010/94/best-colleges-10_Americas-Best-Colleges_TotStudPop",
+        p='_{}'.format(pg) if pg > 1 else '')
 
 def parse(url):
     df = read_html(url, index_col=0, skiprows=1, infer_types=False)[0]\
@@ -24,4 +26,4 @@ def parse(url):
 
 df = pd.concat([parse(get_url(pg)) for pg in range(1, 26)]).reset_index()
 
-df.to_csv('populations-costs.csv')
+df.to_csv('undergrad-populations-costs.csv')
