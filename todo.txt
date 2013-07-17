@@ -1,0 +1,11 @@
+fix geolocations - some are really wrong
+filter by degree
+
+
+
+DONE
+internationals dot - change styling
+make smallest dots bigger on zoom in of map
+graph over time in tooltip
+change map styling - http://maps.stamen.com/toner
+fix averaging - should be mean over all years, is currently mean over years where any graduated

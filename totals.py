@@ -1,8 +1,10 @@
 import pandas as pd
-import utils, simplejson
+import utils
+import simplejson
+
 from ipdb import set_trace
-
-
+from merge import make_merge
+from get_undergrad_pop import get_undergrad_pop
 
 def get_totals():
     cols = {
@@ -62,10 +64,7 @@ def make_summary(totals):
     summary.to_csv('phd-averages.csv', index=False)
     return summary
 
-def make_json(totals_by_year, summary=None):
-    if summary is None: 
-        summary = pd.read_csv('phd-averages-w-pop.csv')
-
+def make_json(summary, totals_by_year): 
     json = summary.to_jsonblob()
     for i, row in summary.iterrows():
         name = row['institution']
@@ -74,9 +73,11 @@ def make_json(totals_by_year, summary=None):
         # json[i]['by_discipline'] = totals_by_discipline.ix[name].to_jsonblob(reset=True)
     
     with open('phds.json', 'w+') as f:
-        simplejson.dump(json, f)
+        simplejson.dump(json, f)    
 
 if __name__ == '__main__':
     totals, totals_by_discipline, totals_by_year = get_totals()
-    summary = make_summary(totals)
-    # make_json(totals_by_year)
+    # undergrads = get_undergrad_pop()
+    undergrads = None
+    merged = make_merge(make_summary(totals), undergrads)
+    make_json(merged, totals_by_year)
