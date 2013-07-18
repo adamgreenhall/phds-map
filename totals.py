@@ -1,6 +1,7 @@
 import pandas as pd
 import utils
 import simplejson
+from pygeocoder import Geocoder
 
 from ipdb import set_trace
 
@@ -42,7 +43,7 @@ def add_locs(totals):
 
     # merge the datasets and add back in the grouped international 
     # PhD almamater too (place it somewhere off Baja)
-    return pd.merge(totals, zipcodes, on='zip', how='inner').append(
+    totals = pd.merge(totals, zipcodes, on='zip', how='inner').append(
         pd.Series(dict(
             institution='International',
             num_bac_docs=totals.num_bac_docs.iloc[1],
@@ -50,6 +51,23 @@ def add_locs(totals):
             latitude=29.228359, longitude=-123.072512)), 
         ignore_index=True)
 
+    
+    counts = totals.groupby('zip').count().institution
+    has_dup_zip = totals.zip.isin(counts[counts > 1].index)
+    for i, row in totals[has_dup_zip | (totals.num_docs > 10)].iterrows():
+        try:
+            # try and do a lookup of the school's geocoded location
+            loc = Geocoder.geocode("{} {} {}".format(
+                row['institution'], row['state'], row['zip']))
+        except: 
+            # if the query doesn't work - just use zipcode's lat/lon
+            continue
+
+        # if it does, replace the lat/lon
+        totals.ix[i, 'latitude'] = loc.latitude
+        totals.ix[i, 'longitude'] = loc.longitude
+        
+    return totals
 
 def make_json(summary, totals_by_year): 
     json = summary.to_jsonblob()
@@ -57,6 +75,8 @@ def make_json(summary, totals_by_year):
         name = row['institution']
         if name == 'International': name = '. Foreign Institutions'
         json[i]['by_year'] = totals_by_year.ix[name].to_jsonblob(reset=True)
+
+        # could also add breakdown by discipline (**lots of data)
         # json[i]['by_discipline'] = totals_by_discipline.ix[name].to_jsonblob(reset=True)
     
     with open('phds.json', 'w+') as f:
@@ -64,4 +84,6 @@ def make_json(summary, totals_by_year):
 
 if __name__ == '__main__':
     totals, totals_by_discipline, totals_by_year = get_totals()
-    make_json(add_locs(totals), totals_by_year)
+    totals = add_locs(totals)
+    totals.to_csv('phds-locations-total-counts.csv', index=False)
+    make_json(totals, totals_by_year)
