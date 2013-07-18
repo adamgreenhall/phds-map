@@ -3,20 +3,20 @@ import utils
 import simplejson
 
 from ipdb import set_trace
-from merge import make_merge
-from get_undergrad_pop import get_undergrad_pop
 
 def get_totals():
     cols = {
         'Year': 'year',
         'Academic Institution (standardized)': 'institution',
+        'Zip': 'zip',
         'Academic Discipline, Detailed (standardized)': 'discipline',
         'Number of Doctorate Recipients by Doctorate Institution(Sum)': 'num_docs',
         'Number of Doctorate Recipients by Baccalaureate Institution(Sum)': 'num_bac_docs',
         }
     cols_counts = ['num_bac_docs', 'num_docs']
 
-    df = pd.read_csv('phds-by-institution.csv', na_values='.')\
+    df = pd.read_csv('phds-by-institution.csv', 
+        na_values='.', dtype={'Zip': str})\
         [cols.keys()].rename(columns=cols).dropna(how='all')\
         .sort(['institution', 'year', 'discipline']).reset_index(drop=True)
 
@@ -28,41 +28,28 @@ def get_totals():
 
     totals = totals_by_year.reset_index()\
         .groupby('institution')[cols_counts].sum().reset_index()
+    # add zipcodes back in
+    locations = df.groupby(['zip', 'institution']).first()\
+        .reset_index()[['zip', 'institution']]
+    totals = pd.merge(totals, locations, on='institution', how='inner')
+    
     return totals, totals_by_discipline, totals_by_year
 
-def get_locs():
-    cols = {
-        'Academic Institution (standardized)': 'institution',
-        'Zip': 'zip'}
-
-    schools = pd.read_csv('phds-by-institution.csv')\
-        [cols.keys()].rename(columns=cols)\
-        .groupby('institution').first().reset_index()
-    schools['zip'] = schools.zip.astype(str)
-
+def add_locs(totals):
     zipcodes = pd.read_csv('zip_code_database.csv', dtype={'zip':str})[
         ['zip', 'state', 'latitude', 'longitude']
     ]
 
-    return pd.merge(schools, zipcodes, on='zip', how='inner').dropna()
-
-
-def make_summary(totals):
-    # get the locations of the schools (lat, long from zipcode)
-    schools = get_locs()
-
-    # merge the datasets and add back in the international doctors too
-    # (place them somewhere off Baja)
-    summary = pd.merge(schools, totals.reset_index(), on='institution').append(
+    # merge the datasets and add back in the grouped international 
+    # PhD almamater too (place it somewhere off Baja)
+    return pd.merge(totals, zipcodes, on='zip', how='inner').append(
         pd.Series(dict(
             institution='International',
             num_bac_docs=totals.num_bac_docs.iloc[1],
             num_docs=0,
             latitude=29.228359, longitude=-123.072512)), 
         ignore_index=True)
-    
-    summary.to_csv('phd-averages.csv', index=False)
-    return summary
+
 
 def make_json(summary, totals_by_year): 
     json = summary.to_jsonblob()
@@ -77,7 +64,4 @@ def make_json(summary, totals_by_year):
 
 if __name__ == '__main__':
     totals, totals_by_discipline, totals_by_year = get_totals()
-    # undergrads = get_undergrad_pop()
-    undergrads = None
-    merged = make_merge(make_summary(totals), undergrads)
-    make_json(merged, totals_by_year)
+    make_json(add_locs(totals), totals_by_year)
